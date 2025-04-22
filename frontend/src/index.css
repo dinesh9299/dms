@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+.file-item {
+  padding: 10px;
+  border: 1px solid #ccc;
+  margin: 5px 0;
+  cursor: pointer;
+}
+
+.button-bar {
+  margin-bottom: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.modal {
+  position: fixed;
+  top: 30%;
+  left: 30%;
+  width: 300px;
+  padding: 20px;
+  background: white;
+  border: 1px solid black;
+  z-index: 1000;
+}
