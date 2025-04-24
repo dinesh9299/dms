@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/Usercontroller");
 
-router.post("/login", authController.login);
+router.post("/login", authController.userLogin);
 // Public: Admin login
 // router.post("/admin/login", authController.adminLogin);
 
@@ -10,6 +10,9 @@ router.post("/login", authController.login);
 // router.post("/user/login", authController.userLogin);
 
 // Protected: Only admin can register users
-router.post("/admin/register-user", authController.registerUser);
+router.post("/register", authController.registerUser);
+
+router.get("/getusers", authController.getUsers);
+router.delete("/deleteuser/:id", authController.deleteuser);
 
 module.exports = router;

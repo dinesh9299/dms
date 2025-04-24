@@ -92,9 +92,9 @@ exports.registerUser = async (req, res) => {
 
   try {
     // Only allow role 'user' to be created here
-    if (role && role !== "user") {
-      return res.status(403).json({ message: "Cannot assign admin role" });
-    }
+    // if (role && role !== "user") {
+    //   return res.status(403).json({ message: "Cannot assign admin role" });
+    // }
 
     const existingUser = await User.findOne({ email });
     if (existingUser)
@@ -106,7 +106,7 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: "user",
+      role: role,
     });
 
     await newUser.save();
@@ -122,19 +122,61 @@ exports.userLogin = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email, role: "user" });
+    const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    // Generate JWT Token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    res.json({ token, role: user.role });
+    // Remove password before sending user data
+    const { password: _, ...userWithoutPassword } = user.toObject();
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: user,
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find({});
+
+    return res.json({
+      message: "users list",
+      data: users,
+    });
+  } catch (error) {
+    console.log("error", error);
+  }
+};
+
+exports.deleteuser = async (req, res) => {
+  const { id } = req.params; // Destructure id from the params
+
+  try {
+    // Use findByIdAndDelete to delete the user by their ID
+    await User.findByIdAndDelete(id);
+
+    return res.json({
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.log("Error deleting user:", error);
+    res.status(500).json({
+      message: "Server error while deleting user",
+    });
   }
 };

@@ -1,172 +1,213 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Sidenav, Nav, Button } from "rsuite";
-import DashboardIcon from "@rsuite/icons/legacy/Dashboard";
+import React, { useState, useEffect } from "react";
+import {
+  DashboardOutlined,
+  LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  VideoCameraOutlined,
+  UserOutlined,
+  MenuOutlined,
+} from "@ant-design/icons";
+import { Layout, Menu, Button, theme, Grid, Drawer } from "antd";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useUser } from "./UserContext";
 
-import MenuIcon from "@rsuite/icons/Menu";
-import { AddOutline } from "@rsuite/icons";
-// import trinaiiamge from '../assets/Images/trinai-02.png';
+const { Header, Sider, Content } = Layout;
+const { useBreakpoint } = Grid;
 
-import "rsuite/dist/rsuite.min.css";
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { FolderPlus } from "lucide-react";
-
-const SidebarWithTopNav = () => {
-  const [expanded, setExpanded] = useState(true);
-  const [activeKey, setActiveKey] = useState("1");
-  const [isMobile, setIsMobile] = useState(false);
+const SidebarWithHoverExpand = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useUser();
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
-  // Toggle functions
-  const handleSidebarToggle = () => setExpanded((prev) => !prev);
-  const handleCloseSidebar = () => setExpanded(false);
-  const handleOpenSidebar = () => setExpanded(true);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // Determines if the screen is mobile or not
 
-  // Responsive handling
+  const {
+    token: { colorBgContainer, borderRadiusLG },
+  } = theme.useToken();
+
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      setExpanded(!mobile);
-    };
+    if (user?.user?.role !== "admin") {
+      navigate("/login"); // Redirect if not an admin
+    }
+  }, [user, navigate]);
 
-    window.addEventListener("resize", handleResize);
-    handleResize(); // Call once on mount
+  const menuItems = [
+    {
+      key: "/admin-dashboard",
+      icon: <DashboardOutlined />,
+      label: "Dashboard",
+    },
+    {
+      key: "/Files",
+      icon: <VideoCameraOutlined />,
+      label: "Files",
+    },
+    {
+      key: "/users",
+      icon: <UserOutlined />,
+      label: "Users",
+    },
+  ];
 
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const bottomMenuItems = [
+    {
+      key: "/profile",
+      icon: <UserOutlined />,
+      label: "Profile",
+    },
+    {
+      key: "logout",
+      icon: <LogoutOutlined rotate={180} />,
+      label: "Logout",
+    },
+  ];
+
+  const handleMenuClick = ({ key }) => {
+    if (key === "logout") {
+      localStorage.removeItem("userDetails");
+      logout();
+      navigate("/login");
+    } else {
+      navigate(key);
+    }
+  };
 
   return (
-    <div>
-      {/* Top Navbar */}
-      <div
-        style={{
-          height: 60,
-          background: "#f5f5f5",
-          display: "flex",
-          alignItems: "center",
-          paddingLeft: expanded && !isMobile ? 250 : 70,
-          paddingRight: 20,
-          transition: "padding-left 0.3s ease",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 999,
-        }}
-      >
-        <Button
-          appearance="primary"
-          size="sm"
-          style={{
-            marginRight: 15,
-            position: "absolute",
-            left: 20,
-            top: "50%",
-            transform: "translateY(-50%)",
-          }}
-          onClick={handleSidebarToggle}
-        >
-          <MenuIcon />
-        </Button>
-        {/* <img src={trinaiiamge} alt="Logo" className=" ml-72 w-32 sm:w-40 md:w-48 lg:w-56   xl:w-64 mx-auto" /> */}
-      </div>
-
-      {/* Sidebar */}
-      {expanded && (
-        <Sidenav
-          expanded={expanded}
-          appearance="subtle"
+    <Layout style={{ minHeight: "100vh" }}>
+      {/* Sidebar for Desktop */}
+      {!isMobile && (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
           style={{
             position: "fixed",
             top: 0,
             left: 0,
-            height: "100vh",
-            width: 240,
-            paddingTop: 60,
-            background: "#fff",
-            boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
-            zIndex: 998,
-            transition: "width 0.3s ease",
+            height: "100vh", // Full height
+            backgroundColor: "white",
+            zIndex: 999,
+            transition: "width 0.3s",
+            width: collapsed ? 80 : 200,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Sidenav.Body className=" pt-5 px-2">
-            <Nav
-              className=" flex flex-col gap-3"
-              activeKey={activeKey}
-              onSelect={setActiveKey}
-            >
-              <Nav.Item
-                style={{
-                  color:
-                    location.pathname === "/admin-dashboard" ? "blue" : "black",
-                  backgroundColor:
-                    location.pathname === "/admin-dashboard" ? "#e7eaf6" : "",
-                  borderRadius: "5px",
-                }}
-                eventKey="1"
-                icon={<DashboardIcon />}
-                onClick={() => navigate("/admin-dashboard")}
-              >
-                Dashboard
-              </Nav.Item>
-
-              <Nav.Item
-                eventKey="1"
-                style={{
-                  color: location.pathname === "/Files" ? "blue" : "black",
-                  backgroundColor:
-                    location.pathname === "/Files" ? "#e7eaf6" : "",
-                  borderRadius: "5px",
-                }}
-                icon={<DashboardIcon />}
-                onClick={() => navigate("/Files")}
-              >
-                Files
-              </Nav.Item>
-
-              {/* <Nav.Item
-                eventKey="2"
-                icon={<GroupIcon />}
-                onClick={() => navigate('/user-group')}
-              >
-                Catageory
-              </Nav.Item> */}
-
-              {/* <Nav.Menu eventKey="3" title="Addmaterials" icon={<MagicIcon />}>
-                <Nav.Item eventKey="3-1">Geo</Nav.Item>
-                <Nav.Item eventKey="3-2">Devices</Nav.Item>
-                <Nav.Item eventKey="3-3">Loyalty</Nav.Item>
-                <Nav.Item eventKey="3-4">Visit Depth</Nav.Item>
-              </Nav.Menu> */}
-
-              {/* <Nav.Item
-                eventKey="4"
-                icon={<AddOutline/>}
-                onClick={() => navigate('/addproducts')}
-              >
-                Add Products
-              </Nav.Item> */}
-            </Nav>
-          </Sidenav.Body>
-          <div className=" fixed bottom-0 p-4">jhgf</div>
-        </Sidenav>
+          <div className="flex justify-center items-center p-3">Logo</div>
+          <hr />
+          <Menu
+            theme="light"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            onClick={handleMenuClick}
+            items={menuItems}
+            style={{ flex: 1 }} // Allow Menu to take up available space
+          />
+          {/* Bottom Menu for Profile/Logout */}
+          <div className="absolute bottom-0 w-full">
+            <Menu
+              theme="light"
+              mode="inline"
+              selectedKeys={[location.pathname]}
+              onClick={handleMenuClick}
+              items={bottomMenuItems}
+              style={{ width: "100%" }} // Ensures it takes full width
+            />
+          </div>
+        </Sider>
       )}
 
-      {/* Main Content Area */}
-      <div
+      {/* Drawer for Mobile */}
+      {/* Drawer for Mobile */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          closable
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          bodyStyle={{ padding: 0 }}
+        >
+          <Menu
+            theme="light"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            onClick={(e) => {
+              handleMenuClick(e);
+              setDrawerVisible(false); // close drawer on click
+            }}
+            items={menuItems}
+          />
+          <div className="absolute bottom-0 w-full">
+            <Menu
+              theme="light"
+              mode="inline"
+              selectedKeys={[location.pathname]}
+              onClick={(e) => {
+                handleMenuClick(e);
+                setDrawerVisible(false);
+              }}
+              items={bottomMenuItems}
+              style={{ marginTop: "auto" }}
+            />
+          </div>
+        </Drawer>
+      )}
+
+      {/* Main Layout */}
+      <Layout
         style={{
-          marginLeft: expanded && !isMobile ? 240 : 0,
-          marginTop: 60,
-          padding: 20,
-          transition: "margin-left 0.3s ease",
+          marginLeft: !isMobile ? (collapsed ? 80 : 200) : 0,
+          transition: "margin-left 0.3s",
         }}
       >
-        <Outlet />
-      </div>
-    </div>
+        <Header
+          style={{
+            padding: 0,
+            background: colorBgContainer,
+            position: "fixed",
+            width: "100%",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            type="text"
+            icon={
+              isMobile ? (
+                <MenuOutlined />
+              ) : collapsed ? (
+                <MenuUnfoldOutlined />
+              ) : (
+                <MenuFoldOutlined />
+              )
+            }
+            onClick={() => {
+              if (isMobile) setDrawerVisible(true); // open drawer on mobile
+              else setCollapsed(!collapsed); // toggle sidebar on desktop
+            }}
+            style={{ fontSize: 16, width: 64, height: 64, marginLeft: "10px" }}
+          />
+        </Header>
+        <Content
+          style={{
+            margin: "80px 16px",
+            padding: 24,
+            minHeight: 280,
+            background: colorBgContainer,
+            borderRadius: borderRadiusLG,
+          }}
+        >
+          <Outlet />
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 
-export default SidebarWithTopNav;
+export default SidebarWithHoverExpand;

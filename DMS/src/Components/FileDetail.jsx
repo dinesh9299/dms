@@ -19,6 +19,8 @@ const FileDetail = () => {
 
   const [file, setFile] = useState();
 
+  console.log("file", file);
+
   useEffect(() => {
     const fetchFile = async () => {
       try {
@@ -83,11 +85,13 @@ const FileDetail = () => {
       <button
         style={{ borderRadius: "10px", marginBottom: "10px" }}
         className="flex  items-center gap-1 px-4 py-2 mb-6 text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-100 transition-all duration-150"
-        onClick={() =>
-          navigate("/Files", {
-            state: { returnToFolder: fromFolder, returnStack: folderStack },
-          })
-        }
+        onClick={() => {
+          if (fromFolder) {
+            navigate(`/files?folderId=${fromFolder}`);
+          } else {
+            navigate("/files");
+          }
+        }}
       >
         <IoIosArrowRoundBack className="text-2xl" />
         <span className="text-base font-medium">Back</span>
@@ -104,19 +108,23 @@ const FileDetail = () => {
               {["jpg", "jpeg", "png", "gif", "webp"].includes(
                 file.filetype?.toLowerCase()
               ) ? (
-                <Image
-                  className="rounded-md"
-                  // width={200}
-                  src={getFileIcon(file)}
-                />
+                <div>
+                  <Image
+                    className="rounded-md"
+                    // width={200}
+                    src={getFileIcon(file)}
+                  />
+                </div>
               ) : (
-                <Image
-                  preview={false}
-                  className="rounded-md"
-                  width={150}
-                  height={150}
-                  src={getFileIcon(file)}
-                />
+                <a href={file.path} target="_blank" rel="noopener noreferrer">
+                  <Image
+                    preview={false}
+                    className="rounded-md cursor-pointer"
+                    width={150}
+                    height={150}
+                    src={getFileIcon(file)}
+                  />
+                </a>
               )}
             </div>
           </Col>

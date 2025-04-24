@@ -8,11 +8,21 @@ exports.createFolder = async (req, res) => {
     ? path.join("uploads", name) // Optionally include parent path logic here
     : path.join("uploads", name);
 
+  const existingFile = await File.findOne({
+    name,
+    parent: parentId || null,
+    type: "folder",
+  });
+
+  if (existingFile) {
+    console.log("file");
+    return res.status(204).json({ error: "Folder already exists" });
+  }
   try {
     // Check if the folder already exists
-    if (fs.existsSync(folderPath)) {
-      return res.status(204).json({ error: "Folder already exists" });
-    }
+    // if (fs.existsSync(folderPath)) {
+    //   return res.status(204).json({ error: "Folder already exists" });
+    // }
 
     fs.mkdirSync(folderPath, { recursive: true });
 

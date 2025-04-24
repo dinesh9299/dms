@@ -2,13 +2,21 @@ import React, { useState } from "react";
 import { Form, Input, Modal, message } from "antd";
 import API from "../api";
 
-const ModalCreateFolder = ({ parentId, onClose }) => {
+const ModalCreateFolder = ({ parentId, onClose, success }) => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [messageApi, contextHolder] = message.useMessage();
+  const warning = () => {
+    messageApi.open({
+      type: "warning",
+      content: "Please enter a folder name",
+    });
+  };
+
   const handleCreate = async () => {
     if (!name.trim()) {
-      alert("Please enter a folder name");
+      warning();
       return;
     }
 
@@ -17,6 +25,7 @@ const ModalCreateFolder = ({ parentId, onClose }) => {
       await API.post("/files/folder", { name, parentId });
       message.success("Folder created successfully");
       onClose();
+      success();
     } catch (error) {
       alert("Failed to create folder");
     } finally {
@@ -26,6 +35,7 @@ const ModalCreateFolder = ({ parentId, onClose }) => {
 
   return (
     <div>
+      {contextHolder}
       <h3 className="text-lg font-semibold mb-4">Create New Folder</h3>
       <Form layout="vertical">
         <Form.Item label="Folder Name" required>

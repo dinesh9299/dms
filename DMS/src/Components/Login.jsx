@@ -5,6 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import { Form, Button, Schema, Panel, Message } from "rsuite";
 import "react-toastify/dist/ReactToastify.css";
 import "rsuite/dist/rsuite.min.css";
+import { useUser } from "./UserContext";
 
 const { StringType } = Schema.Types;
 
@@ -15,6 +16,9 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { role } = useParams(); // 'admin' or 'user'
+
+  // Access setUserDetails from context
+  const { setUserDetails } = useUser();
 
   // RSuite Schema Model for Validation
   const model = Schema.Model({
@@ -34,20 +38,23 @@ const Login = () => {
     try {
       const res = await axios.post(loginURL, formData);
 
+      console.log("userfrom login", res.data);
+
       toast.success(`${role} login successful! Redirecting...`, {
         position: "top-right",
         autoClose: 2000,
       });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      // Store user details in context and localStorage
+      setUserDetails(res.data.token, res.data.user);
 
       setTimeout(() => {
-        if (res.data.role === "admin") {
+        if (res.data.user.role === "admin") {
           navigate("/admin-dashboard");
         } else {
-          navigate("/user-dashboard");
+          navigate("/");
         }
+        // navigate("/admin-dashboard");
       }, 2000);
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Login failed";
@@ -64,15 +71,6 @@ const Login = () => {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
       <ToastContainer />
       <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-6xl">
-        {/* Image Section */}
-        {/* <div className="w-full md:w-1/2 flex justify-center">
-          <img
-            src={trinaiiamge}
-            alt="Login"
-            className="w-full max-w-xs md:max-w-sm lg:max-w-md object-contain"
-          />
-        </div> */}
-
         {/* Form Section */}
         <div className="w-full md:w-1/2">
           <Panel
