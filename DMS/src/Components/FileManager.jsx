@@ -13,6 +13,7 @@ import {
   DownloadOutlined,
   ShareAltOutlined,
   MoreOutlined,
+  DeleteColumnOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../api";
@@ -55,6 +56,13 @@ const FileManager = () => {
     messageApi.open({
       type: "success",
       content: "Folder created successfully",
+    });
+  };
+
+  const uploadsuccess = () => {
+    messageApi.open({
+      type: "success",
+      content: "File uploaded successfully",
     });
   };
   const [searchParams] = useSearchParams();
@@ -162,6 +170,16 @@ const FileManager = () => {
     }
   };
 
+  const handleDelete = async (file) => {
+    alert(file._id);
+    // try {
+    //   await API.delete(`/files/${file._id}`);
+    //   alert("deleted");
+    // } catch (error) {
+    //   console.log("error", error);
+    // }
+  };
+
   const goToBreadcrumb = (index) => {
     const target = folderStack[index];
     navigate(`/files?folderId=${target._id || ""}`);
@@ -265,13 +283,20 @@ const FileManager = () => {
                           icon: <ShareAltOutlined />,
                           onClick: () => handleShare(file),
                         },
+                        {
+                          key: "download",
+                          label: "Download",
+                          icon: <DownloadOutlined />,
+                          onClick: () => handleDownload(file),
+                        },
                       ]
                     : []),
+
                   {
-                    key: "download",
-                    label: "Download",
-                    icon: <DownloadOutlined />,
-                    onClick: () => handleDownload(file),
+                    key: "delete",
+                    label: "Delete",
+                    icon: <DeleteColumnOutlined />,
+                    onClick: () => handleDelete(file),
                   },
                 ],
               }}
@@ -348,6 +373,7 @@ const FileManager = () => {
             setShowUploadModal(false);
             fetchFiles(currentFolder);
           }}
+          success={uploadsuccess}
         />
       </Drawer>
 

@@ -5,7 +5,7 @@ import API from "../api";
 
 const { Dragger } = Upload;
 
-const ModalUploadFile = ({ parentId, onClose }) => {
+const ModalUploadFile = ({ parentId, onClose, success }) => {
   const [name, setName] = useState("");
   const [file, setFile] = useState(null);
   const [ext, setExt] = useState("");
@@ -38,6 +38,7 @@ const ModalUploadFile = ({ parentId, onClose }) => {
         alert("file already exist");
       }
       message.success("✅ File uploaded successfully");
+      success();
 
       setLoader(false);
     } catch (error) {
