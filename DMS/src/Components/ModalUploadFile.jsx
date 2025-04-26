@@ -5,7 +5,7 @@ import API from "../api";
 
 const { Dragger } = Upload;
 
-const ModalUploadFile = ({ parentId, onClose, success }) => {
+const ModalUploadFile = ({ parentId, onClose, success, parentpath }) => {
   const [name, setName] = useState("");
   const [file, setFile] = useState(null);
   const [ext, setExt] = useState("");
@@ -27,12 +27,12 @@ const ModalUploadFile = ({ parentId, onClose, success }) => {
     formData.append("filetype", ext);
     formData.append("size", size);
     formData.append("createdtime", new Date().toISOString());
+    formData.append("parentpath", parentpath);
 
     try {
       const respnse = await API.post("/files/upload", formData);
 
       if (respnse.data.success) {
-        alert("file uploaded");
         onClose();
       } else {
         alert("file already exist");
@@ -52,9 +52,15 @@ const ModalUploadFile = ({ parentId, onClose, success }) => {
     beforeUpload: (file) => {
       setFile(file);
       const extension = file.name.split(".").pop();
+
+      const nameWithoutExtension = file.name.substring(
+        0,
+        file.name.lastIndexOf(".")
+      );
+
       setExt(extension);
       setSize(file.size);
-      setName(file.name); // Auto-fill file name field
+      setName(nameWithoutExtension);
       return false; // prevent auto upload
     },
     onDrop(e) {

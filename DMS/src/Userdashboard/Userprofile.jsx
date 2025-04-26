@@ -6,8 +6,6 @@ import { useNavigate } from "react-router-dom";
 const { Title, Text } = Typography;
 
 const Uprofile = () => {
-  const { message, notification, modal } = App.useApp();
-
   const { user } = useUser();
   const navigate = useNavigate();
 
@@ -22,14 +20,6 @@ const Uprofile = () => {
       <Title level={3} style={{ textAlign: "center" }}>
         Profile Information
       </Title>
-
-      <button
-        onClick={() => {
-          message.success("Good!");
-        }}
-      >
-        Success
-      </button>
 
       <Row gutter={[16, 16]} justify="center">
         <Col xs={24} sm={18} md={12} lg={8}>

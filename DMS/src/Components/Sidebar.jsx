@@ -42,7 +42,7 @@ const SidebarWithHoverExpand = () => {
       label: "Dashboard",
     },
     {
-      key: "/Files",
+      key: "/files",
       icon: <VideoCameraOutlined />,
       label: "Files",
     },

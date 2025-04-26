@@ -1,6 +1,8 @@
 const File = require("../models/File");
 const path = require("path");
 const fs = require("fs");
+const Notificationmodel = require("../models/Notificationmodel");
+const User = require("../models/User");
 
 exports.createFolder = async (req, res) => {
   const { name, parentId } = req.body;
@@ -41,10 +43,9 @@ exports.createFolder = async (req, res) => {
 };
 
 exports.uploadFile = async (req, res) => {
-  const { name, parentId, filetype, size, createdtime } = req.body;
+  const { name, parentId, filetype, size, createdtime, parentpath } = req.body;
 
   try {
-    // 🔍 Check if a file with the same name exists under the same parent
     const existingFile = await File.findOne({
       name,
       parent: parentId || null,
@@ -53,12 +54,11 @@ exports.uploadFile = async (req, res) => {
 
     if (existingFile) {
       return res.json({
-        error: "File with the same name already exists in this folder.",
+        error: `File with the same name "${name}" already exists in this folder.`,
         success: false,
       });
     }
 
-    // ✅ Build a public-facing URL
     const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${
       req.file.filename
     }`;
@@ -74,18 +74,80 @@ exports.uploadFile = async (req, res) => {
     });
 
     await file.save();
-    res.status(201).json({
+
+    // Create recipients list for notification
+    const allUsers = await User.find(); // get all users
+    const recipients = allUsers.map((user) => ({
+      userId: user._id,
+      seen: false,
+    }));
+
+    const notification = new Notificationmodel({
+      message: `${name}`,
+      time: new Date(),
+      recipients: recipients,
+      parent: parentpath,
+    });
+
+    await notification.save();
+
+    // Emit real-time notification
+    const io = req.app.get("io"); // Get io instance from the request
+    io.emit("new_notification", notification); // Emit the notification
+
+    console.log("notification", notification);
+
+    // ✅ Finally respond
+    return res.status(201).json({
       file: file,
       success: true,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.markNotificationAsSeen = async (req, res) => {
+  const { notifId } = req.params;
+  const { userId } = req.body;
+
+  try {
+    const notification = await Notificationmodel.findById(notifId);
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    const recipient = notification.recipients.find(
+      (r) => r.userId.toString() === userId
+    );
+
+    if (!recipient) {
+      return res
+        .status(404)
+        .json({ message: "User is not a recipient of this notification" });
+    }
+
+    if (!recipient.seen) {
+      recipient.seen = true;
+      await notification.save();
+    }
+
+    res.json({ message: "Notification marked as seen", success: true });
+  } catch (err) {
+    console.error("Error updating notification:", err);
+    res.status(500).json({ message: "Internal server error", success: false });
   }
 };
 
 exports.getFiles = async (req, res) => {
   const { parentId } = req.query;
   const files = await File.find({ parent: parentId || null });
+  res.json(files);
+};
+
+exports.getallfiles = async (req, res) => {
+  const files = await File.find({});
   res.json(files);
 };
 

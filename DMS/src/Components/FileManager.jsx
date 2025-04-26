@@ -206,6 +206,26 @@ const FileManager = () => {
     })),
   ];
 
+  const [parentpath, setParentpath] = useState("");
+
+  const breadcrumbitem = () => {
+    const itemb = breadcrumbItems.map((item) => {
+      return item?.title?.props?.children || ""; // Extract 'children' from the props
+    });
+
+    // Join the items with a '/' separator and log the result
+    const breadcrumbString = itemb.join("/");
+    setParentpath(breadcrumbString);
+  };
+
+  console.log("parent", parentpath);
+
+  useEffect(() => {
+    breadcrumbitem();
+  }, [breadcrumbItems]);
+
+  console.log("breadcrumb", breadcrumbItems);
+
   return (
     <div className="p-6 bg-white shadow rounded-lg max-w-5xl mx-auto">
       {contextHolder}
@@ -369,6 +389,7 @@ const FileManager = () => {
       >
         <ModalUploadFile
           parentId={currentFolder}
+          parentpath={parentpath}
           onClose={() => {
             setShowUploadModal(false);
             fetchFiles(currentFolder);

@@ -1,32 +1,55 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
 const fileRoutes = require("./routes/fileRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 require("dotenv").config();
 
 const app = express();
+const server = http.createServer(app); // 🔁 Use HTTP server instead of app.listen
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+});
 
+// Attach Socket.IO to app
+app.set("io", io);
+
+// Middleware
 app.use(
   cors({
-    origin: "http://localhost:5173", // 👈 correct frontend URL
-    credentials: true, // 👈 if you're using cookies or sessions
+    origin: "http://localhost:5173",
+    credentials: true,
   })
 );
-
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
+
+// Routes
 app.use("/api/files", fileRoutes);
 app.use("/api", userRoutes);
 
-// ✅ Connect to MongoDB the new way
+// Socket.IO connection listener
+io.on("connection", (socket) => {
+  console.log("🔗 User connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected:", socket.id);
+  });
+});
+
+// Start server after DB connection
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI); // 👈 No callback here
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ Connected to MongoDB");
 
-    app.listen(5000, () => {
+    server.listen(5000, () => {
       console.log("🚀 Server running on http://localhost:5000");
     });
   } catch (err) {

@@ -7,8 +7,11 @@ const {
   uploadFile,
   getFiles,
   deleteItem,
+  markNotificationAsSeen,
+  getallfiles,
 } = require("../controllers/fileController");
 const File = require("../models/File");
+const Notificationmodel = require("../models/Notificationmodel");
 
 // Create folder
 router.post("/folder", createFolder);
@@ -18,6 +21,8 @@ router.post("/upload", upload.single("file"), uploadFile);
 
 // Get files in a folder
 router.get("/", getFiles);
+
+router.get("/allfiles", getallfiles);
 
 // 👇 New route to get a file/folder's detail (used in breadcrumb)
 router.get("/detail", async (req, res) => {
@@ -81,5 +86,37 @@ router.get("/file/:id", async (req, res) => {
   }
   res.json(file);
 });
+
+router.get("/notification/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const notifications = await Notificationmodel.find({
+      "recipients.userId": userId,
+    })
+      .sort({ time: -1 })
+      .lean();
+
+    // Filter and simplify data
+    const userNotifications = notifications.map((notification) => {
+      const recipient = notification.recipients.find(
+        (r) => r.userId.toString() === userId
+      );
+      return {
+        _id: notification._id,
+        message: notification.message,
+        parent: notification.parent,
+        time: notification.time,
+        seen: recipient?.seen || false,
+      };
+    });
+
+    res.json(userNotifications);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+});
+
+router.post("/mark-seen/:notifId", markNotificationAsSeen);
 
 module.exports = router;
