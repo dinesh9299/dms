@@ -236,7 +236,7 @@ function Userdashboard() {
         notifications.map((notif) => (
           <div
             key={notif._id}
-            className="flex justify-between gap-2  shadow-md p-2  hover:bg-slate-200"
+            className="flex justify-between gap-2  shadow-md p-2 rounded-md  hover:bg-slate-200"
           >
             <div className="text-sm  ">
               {/* <div className=" text-md font-sans">New File Uploaded</div> */}

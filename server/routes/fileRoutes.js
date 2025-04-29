@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/multerConfig");
 const path = require("path");
+const fs = require("fs");
 const {
   createFolder,
   uploadFile,
@@ -42,10 +43,56 @@ router.delete("/:id", deleteItem); // 👈 Add this at the end
 
 router.post("/delete-multiple", async (req, res) => {
   const { ids } = req.body;
+
   try {
-    await File.deleteMany({ _id: { $in: ids } });
-    res.json({ success: true });
+    // Recursive function to delete folder contents
+    const deleteRecursive = async (parentId) => {
+      const children = await File.find({ parent: parentId });
+
+      // For all children, delete in parallel
+      await Promise.all(
+        children.map(async (child) => {
+          if (child.type === "folder") {
+            await deleteRecursive(child._id);
+          } else {
+            const filename = path.basename(child.path);
+            const filePath = path.join(__dirname, "../uploads", filename);
+            try {
+              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            } catch (fileError) {
+              console.error("Failed to delete file:", fileError);
+            }
+          }
+          await File.findByIdAndDelete(child._id);
+        })
+      );
+    };
+
+    // For all top-level ids, delete in parallel
+    await Promise.all(
+      ids.map(async (id) => {
+        const item = await File.findById(id);
+        if (!item) return;
+
+        if (item.type === "folder") {
+          await deleteRecursive(item._id);
+        } else if (item.type === "file") {
+          const filename = path.basename(item.path);
+          const filePath = path.join(__dirname, "../uploads", filename);
+          try {
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          } catch (fileError) {
+            console.error("Failed to delete file:", fileError);
+          }
+        }
+
+        await File.findByIdAndDelete(id);
+      })
+    );
+
+    res.json({ message: "Deleted successfully" });
   } catch (err) {
+    console.error("Delete multiple error:", err);
     res.status(500).json({ error: err.message });
   }
 });
