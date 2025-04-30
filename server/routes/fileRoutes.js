@@ -13,6 +13,7 @@ const {
 } = require("../controllers/fileController");
 const File = require("../models/File");
 const Notificationmodel = require("../models/Notificationmodel");
+const Whatsappapi = require("../controllers/Whatsappapi");
 
 // Create folder
 router.post("/folder", createFolder);
@@ -165,5 +166,7 @@ router.get("/notification/:userId", async (req, res) => {
 });
 
 router.post("/mark-seen/:notifId", markNotificationAsSeen);
+
+router.post("/whatsapp", Whatsappapi);
 
 module.exports = router;

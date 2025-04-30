@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   Space,
@@ -7,7 +7,9 @@ import {
   Breadcrumb,
   Dropdown,
   Drawer,
+  Input,
 } from "antd";
+import axios from "axios";
 import {
   EditOutlined,
   DownloadOutlined,
@@ -17,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../api";
+import MicrophoneIcon from "@rsuite/icons/legacy/Microphone";
 
 import ModalCreateFolder from "./ModalCreateFolder";
 import ModalUploadFile from "./ModalUploadFile";
@@ -28,8 +31,9 @@ import docicon from "../images/doc.png";
 import excelicon from "../images/logo (1).png";
 import unknownfile from "../images/unknown.png";
 
-import { Input, InputGroup } from "rsuite";
+import { InputGroup } from "rsuite";
 import SearchIcon from "@rsuite/icons/Search";
+import { useSyncExternalStore } from "react";
 
 const CustomInputGroup = ({ placeholder, onChange }) => (
   <InputGroup style={{ marginBottom: 10 }}>
@@ -52,6 +56,13 @@ const FileManager = () => {
   const [newName, setNewName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
+  const [allfiles, setAllfiles] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [sharefile, setSharefile] = useState("");
+  const [filePathsMap, setFilePathsMap] = useState({});
+
+  const recognitionRef = useRef(null);
   const success = () => {
     messageApi.open({
       type: "success",
@@ -86,6 +97,51 @@ const FileManager = () => {
     }
   };
 
+  const startListening = () => {
+    if (!("webkitSpeechRecognition" in window)) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    const SpeechRecognition = window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript); // ✅ update state directly
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event);
+    };
+
+    recognition.start();
+  };
+
+  useEffect(() => {
+    const updateSearchPaths = async () => {
+      if (searchQuery.trim() === "") {
+        setFilePathsMap({});
+        return;
+      }
+
+      const matchingFiles = (searchQuery ? allfiles : files).filter((file) =>
+        file.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      const newPaths = {};
+      for (const file of matchingFiles) {
+        const path = await getFilePath(file);
+        newPaths[file._id] = path;
+      }
+      setFilePathsMap(newPaths);
+    };
+
+    updateSearchPaths();
+  }, [searchQuery, allfiles]);
+
   const buildBreadcrumbStack = async (folderId) => {
     const stack = [];
     let currentId = folderId;
@@ -97,6 +153,27 @@ const FileManager = () => {
     }
     return stack;
   };
+
+  const getFilePath = async (file) => {
+    const stack = await buildBreadcrumbStack(file.parent);
+    const pathString = stack.map((folder) => folder.name).join(" / ");
+    return pathString;
+  };
+
+  const fetchAllfiles = async () => {
+    try {
+      const response = await API.get("/files/allfiles");
+      setAllfiles(response.data);
+
+      console.log("response", response.data);
+    } catch (error) {
+      console.log("error", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllfiles();
+  }, []);
 
   const fetchFiles = async (folderId) => {
     try {
@@ -154,9 +231,38 @@ const FileManager = () => {
   };
 
   const handleShare = (file) => {
-    const msg = `Check this out: ${file.name}\n${file.path}`;
-    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    setSharefile(file.path);
+    setIsModalOpen(true); // open modal
+    // console.log("path", file.path)
+  };
+
+  const handleSend = async () => {
+    if (!mobileNumber) {
+      alert("Please enter a mobile number");
+      return;
+    }
+
+    try {
+      const payload = {
+        destination: `+91${mobileNumber}`,
+        // url: "https://whatsapp-media-library.s3.ap-south-1.amazonaws.com/IMAGE/6353da2e153a147b991dd812/4958901_highanglekidcheatingschooltestmin.jpg",
+        url: sharefile,
+      };
+      const response = await axios.post(
+        "http://127.0.0.1:5000/api/files/whatsapp",
+        payload
+      );
+      message.success(`File shared to ${mobileNumber}`);
+      setIsModalOpen(false);
+      setMobileNumber("");
+
+      console.log("response", response);
+    } catch (error) {
+      console.log("error", error);
+    }
+
+    console.log("Sharing file:", sharefile, "to", mobileNumber);
+    // TODO: Call your API to send the image here
   };
 
   const handleBulkDelete = async () => {
@@ -185,9 +291,14 @@ const FileManager = () => {
     navigate(`/files?folderId=${target._id || ""}`);
   };
 
-  const filteredFiles = files.filter((file) =>
-    file.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFiles = (searchQuery?.trim() === "" ? files : allfiles).filter(
+    (file) => file.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  // const filteredFiles = files.filter((file) =>
+  //   file.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // );
+
+  console.log("filter", filteredFiles);
 
   const breadcrumbItems = [
     {
@@ -244,11 +355,26 @@ const FileManager = () => {
 
       <div className="lg:flex justify-between items-center mb-4">
         <div className="lg:w-1/3">
-          <CustomInputGroup
-            placeholder="Search files"
-            onChange={(value) => setSearchQuery(value)}
-          />
+          <InputGroup style={{ marginBottom: 10 }}>
+            <Input
+              value={searchQuery}
+              placeholder="Search files"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              allowClear // ✅ This shows the ❌ button
+            />
+
+            <InputGroup.Addon
+              onClick={startListening}
+              style={{ cursor: "pointer" }}
+            >
+              <MicrophoneIcon />
+            </InputGroup.Addon>
+            <InputGroup.Addon>
+              <SearchIcon />
+            </InputGroup.Addon>
+          </InputGroup>
         </div>
+
         {selectedFiles.length > 0 && (
           <Button danger onClick={handleBulkDelete}>
             🗑️ Delete Selected ({selectedFiles.length})
@@ -355,6 +481,11 @@ const FileManager = () => {
                 <div>{file.name}</div>
                 <div>{file.type === "file" && <div>.{file.filetype}</div>}</div>
               </div>
+              {searchQuery && filePathsMap[file._id] && (
+                <div className="text-xs text-gray-500 mt-1 text-center truncate w-full">
+                  {filePathsMap[file._id]}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -410,6 +541,23 @@ const FileManager = () => {
           className="w-full border px-3 py-2 rounded"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
+        />
+      </Modal>
+      <Modal
+        title="Share File via WhatsApp"
+        open={isModalOpen}
+        onOk={handleSend}
+        onCancel={() => setIsModalOpen(false)}
+        okText="Share"
+        cancelText="Cancel"
+      >
+        <p>
+          <strong>File:</strong> {sharefile}
+        </p>
+        <Input
+          placeholder="Enter mobile number"
+          value={mobileNumber}
+          onChange={(e) => setMobileNumber(e.target.value)}
         />
       </Modal>
     </div>
